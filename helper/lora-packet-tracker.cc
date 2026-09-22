@@ -447,6 +447,7 @@ LoraPacketTracker::CountMacPacketsGloballyDelay (Time startTime, Time stopTime, 
 	}
 	//cout << "trans: " << packetsOutsideTransient << " d: " << delaySum.GetSeconds() << endl;
 
+
   	if (packetsOutsideTransient != 0)
     {
       avgDelay = (delaySum/packetsOutsideTransient).GetSeconds ();
@@ -534,6 +535,186 @@ LoraPacketTracker::CountMacPacketsForType(Time startTime, Time stopTime, NodeTyp
     return std::to_string(sent) + " " + std::to_string(received);
 }
 
+std::string
+LoraPacketTracker::CountMacPacketsForType(Time startTime, Time stopTime, NodeType type, uint16_t nodeEdge, uint16_t nDev, uint8_t sf){
+    NS_LOG_FUNCTION(this << startTime << stopTime);
+
+    double sent = 0;
+    double received = 0;
+
+    for (auto it = m_macPacketTracker.begin(); it != m_macPacketTracker.end(); ++it){
+		switch (type) {
+			case REGULAR:
+            if((*it).second.sf == sf)
+            {
+				if((*it).second.senderId >=0 && (*it).second.senderId < nodeEdge){
+					if ((*it).second.sendTime >= startTime && (*it).second.sendTime <= stopTime){
+            			sent++;
+            			if (!(*it).second.receptionTimes.empty()){
+                			received++;
+            			}
+        			}
+				}
+            }
+			break;
+			case ALARM:
+            if((*it).second.sf == sf)
+            {
+				if((*it).second.senderId >= nodeEdge && (*it).second.senderId < nDev){
+					if ((*it).second.sendTime >= startTime && (*it).second.sendTime <= stopTime){
+            			sent++;
+            			if (!(*it).second.receptionTimes.empty()){
+                			received++;
+            			}
+        			}
+				}
+            }
+			break;
+			default:
+			break;
+		}				/* -----  end switch  ----- */
+    }
+    return std::to_string(sent) + " " + std::to_string(received);
+}
+
+std::string
+LoraPacketTracker::CountMacPacketsForTypeDelay(Time startTime,
+                                               Time stopTime,
+                                               NodeType type,
+                                               uint16_t nodeEdge,
+                                               uint16_t nDev,
+                                               uint32_t gwId,
+                                               uint32_t gwNum)
+{
+    NS_LOG_FUNCTION(this << startTime << stopTime);
+
+    Time delaySum = Seconds(0);
+    double avgDelay = 0;
+    int packetsOutsideTransient = 0;
+
+    for (uint32_t i = gwId; i < (gwId + gwNum); i++)
+    {
+        for (auto itMac = m_macPacketTracker.begin(); itMac != m_macPacketTracker.end(); ++itMac)
+        {
+            bool matchesType = false;
+            switch (type)
+            {
+            case REGULAR:
+                matchesType =
+                    ((*itMac).second.senderId >= 0 && (*itMac).second.senderId < nodeEdge);
+                break;
+            case ALARM:
+                matchesType =
+                    ((*itMac).second.senderId >= nodeEdge && (*itMac).second.senderId < nDev);
+                break;
+            default:
+                break;
+            }
+
+            if (!matchesType)
+            {
+                continue;
+            }
+
+            if ((*itMac).second.sendTime > startTime && (*itMac).second.sendTime < stopTime)
+            {
+                // Compute delays
+                /////////////////
+                auto itRx = (*itMac).second.receptionTimes.find(gwId);
+                if (itRx == (*itMac).second.receptionTimes.end() || itRx->second == Time::Max() ||
+                    itRx->second < (*itMac).second.sendTime)
+                {
+                    NS_LOG_DEBUG("Packet never received, ignoring it");
+                }
+                else
+                {
+                    packetsOutsideTransient++;
+                    delaySum += itRx->second - (*itMac).second.sendTime;
+                }
+            }
+        }
+    }
+
+
+    if (packetsOutsideTransient != 0)
+    {
+        avgDelay = (delaySum / packetsOutsideTransient).GetSeconds();
+    }
+
+    return (std::to_string(avgDelay));
+}
+
+std::string
+LoraPacketTracker::CountMacPacketsForTypeDelay(Time startTime,
+                                               Time stopTime,
+                                               NodeType type,
+                                               uint16_t nodeEdge,
+                                               uint16_t nDev,
+                                               uint32_t gwId,
+                                               uint32_t gwNum,
+                                               uint8_t sf)
+{
+    NS_LOG_FUNCTION(this << startTime << stopTime);
+
+    Time delaySum = Seconds(0);
+    double avgDelay = 0;
+    int packetsOutsideTransient = 0;
+
+    for (uint32_t i = gwId; i < (gwId + gwNum); i++)
+    {
+        for (auto itMac = m_macPacketTracker.begin(); itMac != m_macPacketTracker.end(); ++itMac)
+        {
+            if ((*itMac).second.sf != sf)
+            {
+                continue;
+            }
+
+            bool matchesType = false;
+            switch (type)
+            {
+            case REGULAR:
+                matchesType =
+                    ((*itMac).second.senderId >= 0 && (*itMac).second.senderId < nodeEdge);
+                break;
+            case ALARM:
+                matchesType =
+                    ((*itMac).second.senderId >= nodeEdge && (*itMac).second.senderId < nDev);
+                break;
+            default:
+                break;
+            }
+
+            if (!matchesType)
+            {
+                continue;
+            }
+
+            if ((*itMac).second.sendTime > startTime && (*itMac).second.sendTime < stopTime)
+            {
+                // Compute delays
+                /////////////////
+                auto itRx = (*itMac).second.receptionTimes.find(gwId);
+                if (itRx == (*itMac).second.receptionTimes.end() || itRx->second == Time::Max() ||
+                    itRx->second < (*itMac).second.sendTime)
+                {
+                    NS_LOG_DEBUG("Packet never received, ignoring it");
+                }
+                else
+                {
+                    packetsOutsideTransient++;
+                    delaySum += itRx->second - (*itMac).second.sendTime;
+                }
+            }
+        }
+    }
+
+    if (packetsOutsideTransient != 0)
+    {
+        avgDelay = (delaySum / packetsOutsideTransient).GetSeconds();
+    }
+
+    return (std::to_string(avgDelay));
+}
 
 
 

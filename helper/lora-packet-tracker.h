@@ -295,12 +295,36 @@ class LoraPacketTracker
 											  uint32_t gwNum,
 											  uint8_t sf);
 
+    std::string CountMacPacketsForTypeDelay(Time startTime,
+                                        Time stopTime,
+                                        NodeType type,
+                                        uint16_t nodeEdge,
+                                        uint16_t nDev,
+                                        uint32_t gwId,
+                                        uint32_t gwNum);
+
+    std::string CountMacPacketsForTypeDelay(Time startTime,
+                                        Time stopTime,
+                                        NodeType type,
+                                        uint16_t nodeEdge,
+                                        uint16_t nDev,
+                                        uint32_t gwId,
+                                        uint32_t gwNum,
+                                        uint8_t sf);
+
 
 	std::string CountMacPacketsForType (Time startTime, 
 										Time stopTime, 
 										NodeType type, 
 										uint16_t nodeEdge, 
 										uint16_t nDev);
+
+    std::string CountMacPacketsForType (Time startTime, 
+										Time stopTime, 
+										NodeType type, 
+										uint16_t nodeEdge, 
+										uint16_t nDev,
+                                        uint8_t sf);
 
   private:
     PhyPacketData m_packetTracker;              //!< Packet map of PHY layer metrics
